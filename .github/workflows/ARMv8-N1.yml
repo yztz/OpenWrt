@@ -16,6 +16,7 @@ on:
 env:
   REPO_URL: https://github.com/coolsnowwolf/lede
   REPO_BRANCH: master
+  COMMIT_ID: b65b15a30e3fe59dd9ecf0009afd9b938624c485
   CONFIG_FILE: configs/armv8-n1.config
   DIY_SCRIPT: diy-n1.sh
   CLASH_KERNEL: arm64
@@ -69,6 +70,7 @@ jobs:
         df -hT $GITHUB_WORKSPACE
         git clone $REPO_URL -b $REPO_BRANCH workdir/openwrt
         cd workdir/openwrt
+        git reset --hard $COMMIT_ID
         echo "OPENWRT_PATH=$PWD" >> $GITHUB_ENV
         VERSION_INFO=$(git show -s --date=short --format="Author: %an<br/>date: %cd<br/>commit: %s<br/>commit hash: %H")
         echo "VERSION_INFO=$VERSION_INFO" >> $GITHUB_ENV
