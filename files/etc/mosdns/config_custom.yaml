@@ -1,0 +1,182 @@
+log:
+  level: info
+  file: "/tmp/mosdns.log"
+
+
+api:
+  http: "0.0.0.0:5336" # 在该地址启动 api 接口。
+
+include: []
+
+plugins:
+  - tag: cache
+    type: cache
+    args:
+      dump_file: ./dnscache.dump
+
+  # hosts
+  - tag: hosts
+    type: hosts
+    args:
+      files:
+        - "/etc/mosdns/rule/hosts.txt"
+
+  # 灰名单 = 科学
+  - tag: greylist
+    type: domain_set
+    args:
+      files:
+        - "/etc/mosdns/rule/greylist.txt"
+  
+  # 白名单 = 国内
+  - tag: whitelist
+    type: domain_set
+    args:
+      files:
+        - "/etc/mosdns/rule/whitelist.txt"
+
+  # 国内域名
+  - tag: geosite_cn
+    type: domain_set
+    args:
+      exps:
+        - "lan"
+        - "local"
+        - "arpa"
+      files:
+        - "/var/mosdns/geosite_cn.txt"
+        - "/var/mosdns/geosite_steam@cn.txt"
+        - "/var/mosdns/geosite_apple-cn.txt"
+        - "/var/mosdns/geosite_microsoft-dev.txt"
+        - "/var/mosdns/geosite_msn.txt"
+        - "/var/mosdns/geosite_microsoft.txt"
+        - "/var/mosdns/geosite_google@cn.txt"
+        - "/var/mosdns/geosite_category-games@cn.txt"
+        - "/var/mosdns/geosite_category-public-tracker.txt"
+        # - "/var/mosdns/geosite_category-dev.txt"
+
+  # 国内 IP
+  - tag: geoip_cn
+    type: ip_set
+    args:
+      files:
+        - "/var/mosdns/geoip_cn.txt"
+
+  # 国外域名
+  - tag: geosite_no_cn
+    type: domain_set
+    args:
+      files:
+        - "/var/mosdns/geosite_geolocation-!cn.txt"
+
+
+  # 国内解析
+  - tag: local_sequence
+    type: sequence
+    args:
+      #- exec: forward 192.168.100.1
+      - exec: forward 223.5.5.5 223.6.6.6
+      - matches:
+        - has_resp
+        - resp_ip 192.168.100.0/24 # LAN IP/CIDR
+        exec: ttl 1800-0
+
+  # 国外解析
+  - tag: remote_sequence
+    type: sequence
+    args:
+      - matches:
+        - qtype 28
+        exec: reject 0
+      - exec: forward 127.127.127.127:7874
+      - exec: ttl 1800-0
+
+  # 有响应终止返回
+  - tag: has_resp_sequence
+    type: sequence
+    args:
+      - matches: has_resp
+        exec: accept
+
+  # fallback 用本地服务器 sequence
+  # 返回非国内 ip 则 drop_resp
+  - tag: fallback_local
+    type: sequence
+    args:
+      - exec: $local_sequence
+      # 非国内IP
+      - matches: 
+        - "has_resp"
+        - "rcode 0"
+        - "!resp_ip $geoip_cn"
+        exec: debug_print Got an IP but not belongs to CN
+      #   exec: drop_resp
+
+  # Fallback
+  # 情况：
+  # 1. 不在黑白名单内
+  # 2. 查询失败
+  # 白名单模式，默认走国内DNS
+  - tag: fallback
+    type: fallback
+    args:
+      primary: fallback_local
+      secondary: remote_sequence
+      threshold: 200
+      always_standby: true
+
+  # Main
+  - tag: main_sequence
+    type: sequence
+    args:
+      # Cache
+      - exec: $cache
+      - exec: jump has_resp_sequence
+
+      # Hosts文件
+      - exec: $hosts
+      - exec: jump has_resp_sequence
+
+      # 丢弃Https请求
+      - matches:
+        - qtype 65
+        exec: reject 3
+
+      # 处理本地PTR
+      - matches:
+        - qtype 12
+        exec: $local_sequence
+      - exec: jump has_resp_sequence
+
+      # 灰名单
+      - matches:
+        - qname $greylist
+        exec: $remote_sequence
+      - exec: jump has_resp_sequence
+
+      # 白名单
+      - matches:
+        - qname $whitelist
+        exec: $local_sequence
+      - exec: jump has_resp_sequence
+      
+      # 匹配国内域名
+      - matches:
+        - qname $geosite_cn
+        exec: $local_sequence
+      - exec: jump has_resp_sequence
+
+      # 匹配国外域名
+      - matches:
+        - qname $geosite_no_cn
+        exec: $remote_sequence
+      - exec: jump has_resp_sequence
+
+      # Fallback
+      - exec: $fallback
+
+  - tag: udp_server
+    type: udp_server
+    args:
+      entry: main_sequence
+      listen: 0.0.0.0:5335
