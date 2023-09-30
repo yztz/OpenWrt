@@ -16,13 +16,14 @@ on:
 env:
   SOURCE_URL: https://github.com/coolsnowwolf/lede
   SOURCE_BRANCH: master
+  COMMIT_ID: b65b15a30e3fe59dd9ecf0009afd9b938624c485
   CONFIG_FILE: configs/rpi4.config
   EXTRA_CONFIG: configs/extra.config
-  DIY_SCRIPT: diy-script.sh
+  DIY_SCRIPT: diy-rpi4.sh
   TOOLCHAIN_TAG: Toolchain
   CLASH_KERNEL: arm64
   UPLOAD_BIN_DIR: false
-  FIRMWARE_RELEASE: true
+  FIRMWARE_RELEASE: false
   FIRMWARE_TAG: RaspberryPi4
   TZ: Asia/Shanghai
 
@@ -60,6 +61,7 @@ jobs:
         df -hT $GITHUB_WORKSPACE
         git clone $SOURCE_URL -b $SOURCE_BRANCH workspace/openwrt
         cd workspace/openwrt
+        git reset --hard $COMMIT_ID
         echo "OPENWRT_PATH=$PWD" >> $GITHUB_ENV
         echo "OPENWRT_PATH=$(echo $PWD)" >> $GITHUB_OUTPUT
         export VERSION_INFO=$(git show -s --date=short --format="Author: %an<br/>date: %cd<br/>commit: %s<br/>commit hash: %H")
