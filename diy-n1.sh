@@ -121,5 +121,7 @@ find package/*/ -maxdepth 2 -path "*/Makefile" | xargs -i sed -i 's/PKG_SOURCE_U
 # 修改插件名字
 # sed -i 's/"带宽监控"/"监控"/g' `grep "带宽监控" -rl ./`
 
+sed -i '1i\src-git small8 https://github.com/kenzok8/small-package'
+
 ./scripts/feeds update -a
 ./scripts/feeds install -a
