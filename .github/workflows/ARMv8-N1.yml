@@ -155,14 +155,12 @@ jobs:
         tar -zcf Packages.tar.gz packages
         rm -rf packages feeds.buildinfo version.buildinfo
         echo "FIRMWARE_PATH=$PWD" >> $GITHUB_ENV
-        echo "FIRMWARE_NAME=$(SOURCE_REPO)-firmware-$(DEVICE_TARGET)-$(DEVICE_SUBTARGET)-$(FILE_DATE)" >> $GITHUB_ENV
-        echo "FIRMWARE_NAME=$(FIRMWARE_NAME)" >> $GITHUB_OUTPUT
 
     - name: Upload Firmware To Artifact
       if: steps.generate.outputs.status == 'success' && env.FIRMWARE_RELEASE != 'true'
       uses: actions/upload-artifact@main
       with:
-        name: ${{ env.FIRMWARE_NAME }}
+        name: firmware
         path: ${{ env.FIRMWARE_PATH }}
 
     - name: Upload Firmware To Release
@@ -187,7 +185,6 @@ jobs:
 
     env:
       VERSION_INFO: ${{ needs.Build.outputs.VERSION_INFO }}
-      FIRMWARE_NAME: ${{ needs.Build.outputs.FIRMWARE_NAME }}
       AUTHOR: Yztz
 
     steps:
@@ -219,14 +216,14 @@ jobs:
     - name: Download Armvirt Firmware
       uses: actions/download-artifact@v2.1.1
       with:
-        name: ${{ env.FIRMWARE_NAME }}
-        path: openwrt-armvirt
+        name: firmware
+        path: .
 
     - name: Package OpenWrt Firmware
       # if: steps.download.outputs.status == 'success'
       uses: unifreq/openwrt_packit@master
       env:
-        OPENWRT_ARMVIRT: openwrt-armvirt/*rootfs.tar.gz
+        OPENWRT_ARMVIRT: firmware/*rootfs.tar.gz
         PACKAGE_SOC: s905d
         WHOAMI: ${{ env.AUTHOR }}
         KERNEL_VERSION_NAME: 5.15.13_6.1.5
