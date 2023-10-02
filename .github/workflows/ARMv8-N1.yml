@@ -233,7 +233,7 @@ jobs:
       if: env.PACKAGED_STATUS == 'success' && env.OPENWRT_RELEASE != 'true'
       uses: kittaakos/upload-artifact-as-is@master
       with:
-        path: ${{ env.PACKAGED_OUTPUTPATH }}
+        path: ${{ env.PACKAGED_OUTPUTPATH }}/*
 
     - name: Upload OpenWrt To Release
       if: env.PACKAGED_STATUS == 'success' && env.OPENWRT_RELEASE == 'true'
