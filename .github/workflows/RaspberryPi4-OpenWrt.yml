@@ -61,13 +61,12 @@ jobs:
         df -hT $GITHUB_WORKSPACE
         git clone $SOURCE_URL -b $SOURCE_BRANCH workspace/openwrt
         cd workspace/openwrt
-        git reset --hard $COMMIT_ID
         echo "OPENWRT_PATH=$PWD" >> $GITHUB_ENV
         echo "OPENWRT_PATH=$(echo $PWD)" >> $GITHUB_OUTPUT
         export VERSION_INFO=$(git show -s --date=short --format="Author: %an<br/>date: %cd<br/>commit: %s<br/>commit hash: %H")
         echo "VERSION_INFO=$VERSION_INFO" >> $GITHUB_ENV
         echo "VERSION_INFO=$(echo $VERSION_INFO)" >> $GITHUB_OUTPUT
-
+# git reset --hard $COMMIT_ID
     - name: Generate Toolchain Config
       run: |
         [ -e $CONFIG_FILE ] && mv $CONFIG_FILE $OPENWRT_PATH/.config
